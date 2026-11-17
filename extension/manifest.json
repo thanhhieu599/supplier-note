@@ -1,12 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Supplier Note — Gợi ý nhà cung cấp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Liên kết sản phẩm với nhà cung cấp và gợi ý khi nhập hàng trên Sapo Omni.",
-  "permissions": ["storage"],
-  "content_scripts": [{
-    "matches": ["https://*.mysapo.com/admin/*", "https://*.mysapogo.com/admin/*"],
-    "js": ["core.js", "content.js"],
-    "run_at": "document_idle"
-  }]
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.mysapo.com/admin/*",
+        "https://*.mysapogo.com/admin/*"
+      ],
+      "js": [
+        "core.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
 }

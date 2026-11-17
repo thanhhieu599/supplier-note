@@ -8,10 +8,10 @@
   document.documentElement.append(host);
   const shadow = host.attachShadow({ mode: 'open' });
   shadow.innerHTML = `<style>
-    :host{all:initial}*{box-sizing:border-box}button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}
+    :host{all:initial}*{box-sizing:border-box}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:wait}
     .launcher{position:fixed;right:20px;bottom:76px;z-index:2147483646;border:0;border-radius:24px;background:#0869cf;color:white;padding:12px 18px;box-shadow:0 3px 16px #0003;font:600 14px system-ui}
     .panel{position:fixed;right:20px;top:70px;bottom:24px;width:370px;max-width:calc(100vw - 24px);z-index:2147483647;background:white;border:1px solid #dce3eb;border-radius:14px;box-shadow:0 8px 40px #17324d33;color:#203247;font:14px/1.5 system-ui;display:flex;flex-direction:column;overflow:hidden}
-    [hidden]{display:none!important}header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid #edf0f4}h2{font-size:16px;margin:0}h3{font-size:14px;margin:0 0 10px}.body{padding:16px;overflow:auto;flex:1}p{margin:0 0 12px}.muted,small{color:#63758a;font-size:12px}button{border:1px solid #d7e0e9;border-radius:7px;padding:8px 11px;background:white;color:#203247}.primary{background:#0869cf;color:white;border-color:#0869cf}.icon{padding:3px 9px;font-size:20px}input,select{width:100%;padding:9px;border:1px solid #ccd7e3;border-radius:7px;background:white;color:#203247}label{display:block;font-size:12px;margin-bottom:10px}label input{margin-top:4px}.row{display:flex;gap:8px;align-items:center}.row>*{min-width:0}.grow{flex:1}.card{padding:12px 0;border-bottom:1px solid #edf0f4}.card strong{display:block;overflow-wrap:anywhere}.card small{display:block;overflow-wrap:anywhere}.danger{color:#b12d35}.section{margin-top:18px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}footer{padding:10px 16px;border-top:1px solid #edf0f4;font-size:12px;color:#63758a}#status{padding:0 16px 12px;color:#21643c;font-size:13px;overflow-wrap:anywhere}.empty{padding:18px 8px;text-align:center;color:#63758a}.badge{display:inline-block;background:#eaf3ff;color:#0869cf;padding:2px 7px;border-radius:4px;font-size:12px;margin-top:4px}details{margin-top:18px}summary{cursor:pointer;color:#63758a}#backup{margin-top:10px}.hint{background:#f3f7fc;padding:10px;border-radius:7px;font-size:12px}.copy{white-space:nowrap}
+    [hidden]{display:none!important}header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid #edf0f4}h2{font-size:16px;margin:0}h3{font-size:14px;margin:0 0 10px}.body{padding:16px;overflow:auto;flex:1}p{margin:0 0 12px}.muted,small{color:#63758a;font-size:12px}button{border:1px solid #d7e0e9;border-radius:7px;padding:8px 11px;background:white;color:#203247}.primary{background:#0869cf;color:white;border-color:#0869cf}.icon{padding:3px 9px;font-size:20px}input,textarea,select{width:100%;padding:9px;border:1px solid #ccd7e3;border-radius:7px;background:white;color:#203247}label{display:block;font-size:12px;margin-bottom:10px}label input,label textarea{margin-top:4px}.row{display:flex;gap:8px;align-items:center}.row>*{min-width:0}.grow{flex:1}.card{padding:12px 0;border-bottom:1px solid #edf0f4}.card strong{display:block;overflow-wrap:anywhere}.card small{display:block;overflow-wrap:anywhere}.danger{color:#b12d35}.section{margin-top:18px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}footer{padding:10px 16px;border-top:1px solid #edf0f4;font-size:12px;color:#63758a}#status{padding:0 16px 12px;color:#21643c;font-size:13px;overflow-wrap:anywhere}.empty{padding:18px 8px;text-align:center;color:#63758a}.badge{display:inline-block;background:#eaf3ff;color:#0869cf;padding:2px 7px;border-radius:4px;font-size:12px;margin-top:4px}details{margin-top:18px}summary{cursor:pointer;color:#63758a}#backup{margin-top:10px}.hint{overflow-wrap:anywhere;background:#f3f7fc;padding:10px;border-radius:7px;font-size:12px}.copy{white-space:nowrap}
     @media(max-width:500px){.panel{right:12px;top:12px;bottom:12px}.launcher{right:12px}}
   </style>
   <button class="launcher" aria-label="Nhà cung cấp" aria-expanded="false">Nhà cung cấp</button>
@@ -22,34 +22,35 @@
     </div><div id="status" role="status" aria-live="polite"></div><footer>Supplier Note · Dữ liệu lưu riêng, không ghi vào Sapo</footer>
   </section>`;
   const $ = s => shadow.querySelector(s);
-  let data = { version: 1, suppliers: [] }, ready = false, busy = false, contextId = '', lastPath = '', selection = [], manual = [];
+  let data = { version: 1, suppliers: [] }, ready = false, busy = 0, contextId = '', lastPath = location.pathname, selection = [], manual = [], manualQuery = '', renderedContext = '';
+  let refreshVersion = 0;
   const panel = $('.panel'), launcher = $('.launcher');
   function message(text, error = false) { $('#status').textContent = text; $('#status').style.color = error ? '#b12d35' : '#21643c'; }
   function el(tag, text, cls) { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; }
   function button(text, fn, cls) { const b = el('button', text, cls); b.type = 'button'; b.addEventListener('click', fn); return b; }
   function field(label, placeholder, value = '') { const l = el('label', label); const i = el('input'); i.placeholder = placeholder; i.value = value; i.maxLength = label.includes('SKU') ? 100 : 250; l.append(i); return [l, i]; }
-  async function save(next) {
-    if (!ready || busy) return false;
-    busy = true;
+  async function save(update, replace = false) {
+    if (!ready && !replace) { message('Dữ liệu chưa sẵn sàng. Hãy tải lại trang hoặc khôi phục sao lưu.', true); return false; }
+    busy++;
     try {
-      const baseline = JSON.stringify(data);
       return await navigator.locks.request(storageKey, async () => {
         const current = await chrome.storage.local.get(storageKey);
-        const latest = validate(current[storageKey] || { version: 1, suppliers: [] });
-        if (JSON.stringify(latest) !== baseline) {
-          data = latest;
-          render();
-          message('Dữ liệu vừa thay đổi ở tab khác. Vui lòng thực hiện lại.', true);
-          return false;
-        }
-        const valid = validate(next);
+        // Mutations apply to the latest committed data, never a stale tab snapshot.
+        const latest = replace ? null : validate(current[storageKey] || { version: 1, suppliers: [] });
+        const valid = validate(replace ? update : update(structuredClone(latest)));
         await chrome.storage.local.set({ [storageKey]: valid });
-        data = valid;
+        data = valid; ready = true;
         return true;
       });
-    }
-    catch { message('Không lưu được. Hãy xuất sao lưu và kiểm tra dung lượng trình duyệt.', true); return false; }
-    finally { busy = false; }
+    } catch (err) {
+      message(err.userMessage || 'Không lưu được. Hãy xuất sao lưu và kiểm tra dung lượng trình duyệt.', true);
+      return false;
+    } finally { busy--; if (!busy && ready) void refreshData(); }
+  }
+  function invalid(text) { const err = new Error(text); err.userMessage = text; throw err; }
+  function draft(input, name) {
+    input.dataset.draft = name;
+    input.addEventListener('input', () => { input.dataset.dirty = 'true'; });
   }
   function toggle(open) { panel.hidden = !open; launcher.setAttribute('aria-expanded', String(open)); if (open) { updateContext(true); $('.icon').focus(); } else launcher.focus(); }
   launcher.onclick = () => toggle(panel.hidden);
@@ -65,7 +66,8 @@
     const found = [];
     for (const row of rows) {
       const input = row.querySelector('[data-sku], [data-product-sku]');
-      let sku = row.getAttribute('data-sku') || input?.getAttribute('data-sku') || input?.getAttribute('data-product-sku');
+      if (!row.getClientRects().length || getComputedStyle(row).visibility === 'hidden' || row.closest('[hidden], [aria-hidden="true"], [role="dialog"]')) continue;
+      let sku = row.getAttribute('data-sku') || row.getAttribute('data-product-sku') || input?.getAttribute('data-sku') || input?.getAttribute('data-product-sku');
       const skuNode = row.querySelector('[class*="sku" i], [data-field="sku"]');
       if (!sku) sku = skuNode?.textContent;
       // Sapo layouts often put SKU on a second line in a product link.
@@ -74,70 +76,107 @@
         const lines = link.innerText.split('\n').map(x => x.trim()).filter(Boolean);
         if (lines.length === 2) sku = lines[1];
       }
-      if (clean(sku, 100)) found.push({ sku: clean(sku, 100), name: clean(link?.textContent || sku) });
+      if (typeof sku === 'string' && sku.trim().length <= 100 && clean(sku, 100)) found.push({ sku: clean(sku, 100), name: clean(link?.textContent || sku) });
     }
     return [...new Map(found.map(p => [key(p.sku), p])).values()];
   }
   function updateContext(force = false) {
     const match = location.pathname.match(/^\/admin\/suppliers\/(\d+)(?:\/|$)/);
     const id = match?.[1] || '';
-    const products = id ? [] : readProducts();
+    const purchasePage = /^\/admin\/(?:purchase_orders|purchase-orders|purchaseorders|stock_receipts|stock-receipts|inventory_receipts|purchase_receipts)(?:\/|$)/.test(location.pathname);
+    const products = !id && purchasePage ? readProducts() : [];
     const changed = force || id !== contextId || lastPath !== location.pathname || JSON.stringify(products) !== JSON.stringify(selection);
-    if (lastPath !== location.pathname) manual = [];
+    if (lastPath !== location.pathname) { manual = []; manualQuery = ''; message(''); }
     contextId = id; lastPath = location.pathname; selection = products;
     const suggestions = ready && !id ? rank(data, selection).length : 0;
     launcher.textContent = suggestions ? `Nhà cung cấp · ${suggestions} gợi ý` : 'Nhà cung cấp';
     if (changed && !panel.hidden && ready) render();
   }
-  function render() {
+  function render({ resetProduct = false } = {}) {
+    const identity = `${lastPath}|${contextId}`;
+    const drafts = new Map();
+    const active = shadow.activeElement;
+    if (renderedContext === identity) {
+      for (const input of shadow.querySelectorAll('[data-draft][data-dirty="true"]')) {
+        if (resetProduct && ['sku', 'product-name'].includes(input.dataset.draft)) continue;
+        drafts.set(input.dataset.draft, {value:input.value, focused:active === input, start:input.selectionStart, end:input.selectionEnd});
+      }
+    }
     const context = $('#context'), main = $('#main'); context.replaceChildren(); main.replaceChildren();
     if (contextId) renderSupplier(context, main); else renderSuggestions(context, main);
+    for (const input of shadow.querySelectorAll('[data-draft]')) {
+      const value = drafts.get(input.dataset.draft);
+      if (!value) continue;
+      input.value = value.value; input.dataset.dirty = 'true';
+      if (input.dataset.draft === 'filter') input.dispatchEvent(new Event('input'));
+      if (value.focused) { input.focus(); input.setSelectionRange(value.start, value.end); }
+    }
+    renderedContext = identity;
+  }
+  function supplierPage(id) {
+    const actual = location.pathname.match(/^\/admin\/suppliers\/(\d+)(?:\/|$)/)?.[1];
+    if (actual === id) return true;
+    updateContext(true);
+    message('Trang đã thay đổi. Vui lòng thực hiện lại.', true);
+    return false;
   }
   function renderSupplier(context, main) {
+    const supplierId = contextId;
     const s = data.suppliers.find(s => s.id === contextId);
     context.append(el('p', 'Sản phẩm cung cấp', 'muted'));
     const [nl, ni] = field('Tên nhà cung cấp', 'Nhập tên để hiển thị gợi ý', s?.name || supplierName());
-    context.append(nl);
+    context.append(nl); draft(ni, 'supplier-name');
     const form = el('form');
     const [sl, si] = field('SKU', 'Ví dụ: Q-100P'); const [pl, pi] = field('Tên sản phẩm', 'Ví dụ: Dao rọc giấy mini');
-    si.required = true; pi.required = true;
+    si.required = true; pi.required = true; draft(si, 'sku'); draft(pi, 'product-name');
     const add = el('button', '+ Liên kết sản phẩm', 'primary'); add.type = 'submit';
     form.append(sl, pl, add); main.append(form);
     form.onsubmit = async e => {
       e.preventDefault();
+      if (!supplierPage(supplierId)) return;
       if (!clean(ni.value) || !clean(si.value) || !clean(pi.value)) return message('Nhập tên nhà cung cấp, SKU và tên sản phẩm.', true);
-      const id = contextId, name = clean(ni.value), sku = clean(si.value, 100), productName = clean(pi.value);
+      const id = supplierId, name = clean(ni.value), sku = clean(si.value, 100), productName = clean(pi.value), rename = ni.dataset.dirty === 'true';
       const existing = data.suppliers.find(x => x.id === id);
       if (existing?.products.some(p => key(p.sku) === key(sku))) return message('SKU đã được liên kết.', true);
-      const next = structuredClone(data);
-      let supplier = next.suppliers.find(x => x.id === id);
-      if (!supplier) { supplier = { id, name, products: [] }; next.suppliers.push(supplier); }
-      supplier.name = name; supplier.products.push({ sku, name: productName });
       add.disabled = true;
-      if (await save(next)) { render(); message('Đã liên kết sản phẩm.'); }
+      const saved = await save(next => {
+        let supplier = next.suppliers.find(x => x.id === id);
+        if (!supplier) { supplier = { id, name, products: [] }; next.suppliers.push(supplier); }
+        if (supplier.products.some(p => key(p.sku) === key(sku))) invalid('SKU đã được liên kết.');
+        if (rename) supplier.name = name; supplier.products.push({ sku, name: productName });
+        return next;
+      });
+      if (saved) { if (ni.value === name) delete ni.dataset.dirty; render({ resetProduct: contextId === id && si.value === sku && pi.value === productName }); message('Đã liên kết sản phẩm.'); }
       add.disabled = false;
     };
     ni.addEventListener('change', async () => {
-      if (!s || !clean(ni.value)) return;
-      const next = structuredClone(data); next.suppliers.find(x => x.id === s.id).name = clean(ni.value);
-      if (await save(next)) message('Đã cập nhật tên.');
+      if (!s || !clean(ni.value) || !supplierPage(supplierId)) return;
+      const name = clean(ni.value), id = s.id;
+      if (name === data.suppliers.find(x => x.id === id)?.name) return;
+      if (await save(next => {
+        const target = next.suppliers.find(x => x.id === id);
+        if (!target) invalid('Nhà cung cấp đã thay đổi. Hãy tải lại trang.');
+        target.name = name; return next;
+      })) { if (ni.value === name) delete ni.dataset.dirty; message('Đã cập nhật tên.'); }
     });
     const section = el('div', undefined, 'section'); main.append(section);
-    const search = el('input'); search.placeholder = 'Lọc theo tên hoặc SKU'; search.setAttribute('aria-label', 'Lọc sản phẩm'); section.append(search);
+    const search = el('input'); search.placeholder = 'Lọc theo tên hoặc SKU'; search.setAttribute('aria-label', 'Lọc sản phẩm'); draft(search, 'filter'); section.append(search);
     const list = el('div'); section.append(list);
+    let limit = 100;
     const show = () => {
       list.replaceChildren();
       const items = (s?.products || []).filter(p => key(`${p.name} ${p.sku}`).includes(key(search.value)));
       if (!items.length) list.append(el('p', s?.products.length ? 'Không có kết quả.' : 'Chưa có sản phẩm liên kết.', 'empty'));
-      for (const p of items) {
+      for (const p of items.slice(0, limit)) {
         const row = el('div', undefined, 'card row'), info = el('div', undefined, 'grow'); info.append(el('strong', p.name), el('small', p.sku));
         row.append(info, button('Bỏ', async () => {
+          if (!supplierPage(supplierId)) return;
           if (!confirm(`Bỏ liên kết SKU ${p.sku}?`)) return;
-          const next = structuredClone(data); const target = next.suppliers.find(x => x.id === s.id); target.products = target.products.filter(x => key(x.sku) !== key(p.sku));
-          if (await save(next)) { render(); message('Đã bỏ liên kết.'); }
+          if (await save(next => { const target = next.suppliers.find(x => x.id === s.id); if (target) target.products = target.products.filter(x => key(x.sku) !== key(p.sku)); return next; })) { render(); message('Đã bỏ liên kết.'); }
         }, 'danger')); list.append(row);
       }
-    }; search.oninput = show; show();
+      if (items.length > limit) list.append(button(`Xem thêm (${items.length - limit})`, () => { limit += 100; show(); }));
+    }; search.oninput = () => { limit = 100; show(); }; show();
   }
   function renderSuggestions(context, main) {
     context.append(el('p', 'Gợi ý nhà cung cấp', 'muted'));
@@ -146,9 +185,17 @@
     const details = el('details'); details.open = !selection.length;
     details.append(el('summary', 'Nhập SKU để tra cứu'));
     const form = el('form', undefined, 'section');
-    const [label, input] = field('SKU sản phẩm', 'Mỗi SKU một dòng hoặc ngăn bằng dấu ;');
+    const label = el('label', 'SKU sản phẩm'), input = el('textarea');
+    input.placeholder = 'Mỗi SKU một dòng hoặc ngăn bằng dấu ;';
+    input.rows = 3; input.maxLength = 20000; input.value = manualQuery;
+    label.append(input); draft(input, 'query');
     const submit = el('button', 'Tra cứu', 'primary'); submit.type = 'submit'; form.append(label, submit);
-    form.onsubmit = e => { e.preventDefault(); manual = input.value.split(/[;\n]/).map(sku => ({ sku: clean(sku, 100) })).filter(p => p.sku); render(); };
+    form.onsubmit = e => {
+      e.preventDefault();
+      const values = input.value.split(/[;\n]/).map(sku => sku.trim()).filter(Boolean);
+      if (values.some(sku => sku.length > 100)) return message('Mỗi SKU tối đa 100 ký tự.', true);
+      manualQuery = input.value; manual = values.map(sku => ({sku})); render(); message('');
+    };
     details.append(form); context.append(details);
     if (selection.length) main.append(button('Làm mới từ phiếu', () => updateContext(true)));
     if (all.length) {
@@ -166,27 +213,37 @@
     main.append(el('p', 'Nếu Sapo không hiển thị SKU theo định dạng nhận diện được, hãy nhập SKU ở trên. Chọn nhà cung cấp trong ô của Sapo sau khi tra cứu.', 'muted section'));
   }
   $('#export').onclick = () => {
-    if (!ready) return;
+    if (!ready) { message('Chưa đọc được dữ liệu để sao lưu. Hãy tải lại trang.', true); return; }
     const payload = { ...data, shop: location.hostname, exportedAt: new Date().toISOString() };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = `supplier-note-${location.hostname}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     message('Đã xuất sao lưu.');
   };
-  $('#import').onclick = () => { if (ready) $('#file').click(); };
+  $('#import').onclick = () => { $('#file').click(); };
   $('#file').onchange = async e => {
     const file = e.target.files[0]; e.target.value = ''; if (!file) return;
     try {
       if (file.size > 5 * 1024 * 1024) throw new Error('Tệp vượt quá 5 MB.');
       const raw = JSON.parse(await file.text());
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Tệp sao lưu không hợp lệ.');
       if (raw.shop !== location.hostname) throw new Error('Tệp không thuộc cửa hàng này.');
       const next = validate(raw);
-      if (!confirm(`Thay thế dữ liệu hiện tại bằng ${next.suppliers.length} nhà cung cấp trong tệp? Hãy xuất sao lưu trước nếu cần.`)) return;
-      if (await save(next)) { render(); message('Đã khôi phục dữ liệu.'); }
+      if (!confirm(`Thay thế dữ liệu hiện tại bằng ${next.suppliers.length} nhà cung cấp trong tệp? Hãy xuất sao lưu trước nếu cần.`)) { message('Đã hủy khôi phục.'); return; }
+      if (await save(next, true)) { updateContext(true); render({resetProduct:true}); message('Đã khôi phục dữ liệu.'); }
     } catch (err) { message(err instanceof SyntaxError ? 'Tệp JSON không hợp lệ.' : err.message, true); }
   };
+  async function refreshData() {
+    const version = ++refreshVersion;
+    try {
+      const current = await chrome.storage.local.get(storageKey);
+      if (version !== refreshVersion || busy) return;
+      data = validate(current[storageKey] || { version: 1, suppliers: [] });
+      ready = true;
+      if (!panel.hidden) render();
+    } catch { message('Dữ liệu không hợp lệ hoặc không đọc được. Hãy khôi phục bản sao lưu.', true); }
+  }
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || !changes[storageKey] || busy) return;
-    try { data = validate(changes[storageKey].newValue || { version: 1, suppliers: [] }); if (!panel.hidden) render(); } catch { message('Dữ liệu không hợp lệ. Hãy khôi phục bản sao lưu.', true); }
+    if (area === 'local' && changes[storageKey] && !busy) void refreshData();
   });
   chrome.storage.local.get(storageKey).then(result => {
     data = validate(result[storageKey] || data); ready = true; updateContext(true);
